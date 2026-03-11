@@ -2,82 +2,87 @@
 
 Safe MCP server + CLI for testing, inspecting, and operating n8n workflows with a deliberately constrained scope.
 
-## Why this exists
+## Overview
 
-Most n8n tooling either focuses on raw REST access or tries to become a fully autonomous workflow editor. This project takes a stricter path:
+`n8n-workflow-tester-safe` is a focused MCP server for n8n operators and agents who want:
 
-- **test workflows safely**
-- **inspect executions and traces**
-- **query node types/catalog**
-- **perform basic workflow CRUD and graph edits**
-- **avoid credentials management**
-- **avoid destructive backup/restore flows**
-- **avoid LLM auto-fix loops**
+- workflow testing
+- execution inspection
+- lightweight workflow operations
+- node catalog lookup
+- a smaller and safer surface than a broad unrestricted admin wrapper
 
-The goal is to give agents and operators a practical MCP surface for n8n without turning it into an unsafe all-powerful control plane.
+It supports both **MCP over stdio** and a **local CLI** for config-driven test runs.
 
-## Current scope
+## Features
 
-### Included
-- webhook and manual execution testing
-- output evaluation/scoring
-- workflow summary lookup
-- create/update/delete workflow
+### Testing
+- run workflow tests by webhook or execute endpoint
+- evaluate output and attach scoring
+- run suites of payloads from JSON config
+- summarize workflows before/after changes
+
+### Operations
+- create workflow
+- update workflow
+- delete workflow
 - add node to workflow
 - connect nodes
+
+### Introspection
 - list node types
-- get node type details
+- inspect a specific node type
 - list executions
-- get execution details
-- execution trace summary
-- local node catalog search/suggestions
+- fetch full execution data
+- build lightweight execution traces
 
-### Explicitly out of scope
-- credentials creation/update/export
-- secret management
+### Catalog helpers
+- search imported node catalog
+- list triggers
+- validate node types
+- suggest nodes for natural-language tasks
+
+## Safety posture
+
+This repo is intentionally limited.
+
+### Included
+- test execution
+- workflow inspection
+- basic workflow CRUD
+- graph edits
+- trace/debug helpers
+
+### Excluded on purpose
+- credentials management
+- secrets lifecycle
 - destructive restore flows
-- autonomous LLM repair loops
+- autonomous LLM auto-fix loops
 
-## Architecture
-
-This repo exposes two interfaces:
-
-1. **MCP server** over stdio for agent/tool integration
-2. **CLI** for local test runs from JSON config
-
-Core modules:
-- `src/index.ts` — MCP server and tool registration
-- `src/cli.ts` — local CLI runner
-- `src/n8n-client.ts` — n8n REST client
-- `src/evaluator.ts` — scoring/evaluation layer
-- `src/catalog.ts` — imported node catalog helpers
-
-## Installation
+## Install
 
 ```bash
 npm install
 npm run build
 ```
 
-## Environment
-
-Create a `.env` file from `.env.example`:
+## Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Expected values:
+Example:
 
 ```env
 N8N_BASE_URL=http://127.0.0.1:5678
-N8N_API_KEY=your_api_key_here
+N8N_API_KEY=replace_me
 N8N_DEFAULT_TIMEOUT_MS=30000
 ```
 
-## CLI usage
+## CLI
 
-Run all test payloads from a config file:
+Run all payloads from a config:
 
 ```bash
 node dist/cli.js --config ./workflows/example.json
@@ -89,91 +94,62 @@ Run a single payload:
 node dist/cli.js --config ./workflows/example.json --payload happy-path
 ```
 
-## MCP tools
+## MCP
 
-### Testing
+Run the MCP server over stdio:
+
+```bash
+node dist/index.js
+```
+
+## Main tools
+
 - `test_workflow`
 - `evaluate_workflow_result`
 - `run_workflow_suite`
 - `get_workflow_summary`
-
-### Workflow operations
 - `create_workflow`
 - `update_workflow`
 - `delete_workflow`
 - `add_node_to_workflow`
 - `connect_nodes`
-
-### n8n introspection
 - `list_node_types`
 - `get_node_type`
 - `list_executions`
 - `get_execution`
 - `get_execution_trace`
-
-### Catalog helpers
 - `get_catalog_stats`
 - `search_nodes`
 - `list_triggers`
 - `validate_node_type`
 - `suggest_nodes_for_task`
 
-## Example workflow test config
+## Docs
 
-See `workflows/example.json`.
+- [Setup](docs/SETUP.md)
+- [Tools Reference](docs/TOOLS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
 
-The two execution modes are:
-
-- `webhook` → call an n8n webhook path or full URL
-- `execute` → call `POST /api/v1/workflows/:id/execute`
-
-## Safety model
-
-This project is intentionally opinionated.
-
-### Principles
-- no credentials management
-- no hidden mutations
-- no autonomous repair behaviour
-- small, inspectable surface area
-- clear separation between testing and control operations
-
-### Important note
-This tool can still mutate workflows if you call:
-- `create_workflow`
-- `update_workflow`
-- `delete_workflow`
-- `add_node_to_workflow`
-- `connect_nodes`
-
-Use it with the same care you would use the n8n REST API.
-
-## Repo structure
+## Project structure
 
 ```text
 src/                  TypeScript source
 catalog/              Imported node catalog assets
 workflows/            Example test configs
+docs/                 Documentation
 dist/                 Build output
 ```
-
-## Roadmap
-
-- richer workflow diffing
-- safer patch operations instead of full replace updates
-- better evaluation presets
-- exportable reports
-- optional read-only mode
 
 ## Status
 
 Working MVP.
 
-Built and validated locally with:
+Validated locally with:
 - `npm install`
 - `npm audit`
 - `npm run build`
 
 ## License
 
-No license specified yet.
+MIT
