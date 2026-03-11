@@ -40,7 +40,7 @@ Most n8n MCP integrations give you **full admin access** — credentials, destru
 ### 1. Install
 
 ```bash
-git clone https://github.com/hugoscastro-cell/n8n-workflow-tester-safe.git
+git clone https://github.com/souzix76/n8n-workflow-tester-safe.git
 cd n8n-workflow-tester-safe
 npm install && npm run build
 ```
