@@ -174,6 +174,80 @@ describe('evaluateRun', () => {
       const result = evaluateRun(config, makeResult({ output: { a: {} } }));
       expect(result.tier3Score).toBe(80);
     });
+
+    it('contains check with undefined actual value defaults to empty string', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'missing', check: 'contains', value: 'x' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.tier3Score).toBe(80);
+    });
+
+    it('not_contains check passes when field is missing', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'missing', check: 'not_contains', value: 'x' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.tier3Score).toBe(100);
+    });
+
+    it('min_length check with undefined value defaults to 0', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'msg', check: 'min_length' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: { msg: '' } }));
+      // min_length with value=undefined → Number(undefined)=NaN → 0, empty string length 0 >= 0 → pass
+      expect(result.tier3Score).toBe(100);
+    });
+
+    it('max_length check with undefined value uses MAX_SAFE_INTEGER', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'msg', check: 'max_length' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: { msg: 'very long string' } }));
+      expect(result.tier3Score).toBe(100);
+    });
+
+    it('equals check fails when actual is undefined and value is set', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'missing', check: 'equals', value: 'expected' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.tier3Score).toBe(80);
+    });
+
+    it('not_empty check fails when field value is null', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'val', check: 'not_empty' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: { val: null } }));
+      expect(result.tier3Score).toBe(80);
+    });
+
+    it('uses default error severity when severity is not specified', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'x', check: 'not_empty' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.issues[0].severity).toBe('error');
+      expect(result.tier3Score).toBe(80); // -20 for error
+    });
+
+    it('uses default message when check message is not specified', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'check-name', field: 'x.y', check: 'not_empty' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.issues[0].message).toContain('x.y');
+    });
+
+    it('uses custom message when provided', () => {
+      const config = makeConfig({
+        tier3Checks: [{ name: 'c', field: 'x', check: 'not_empty', message: 'Custom fail msg' }],
+      });
+      const result = evaluateRun(config, makeResult({ output: {} }));
+      expect(result.issues[0].message).toBe('Custom fail msg');
+    });
   });
 
   describe('scoring formula', () => {

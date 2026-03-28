@@ -89,6 +89,13 @@ describe('validateNodeType', () => {
   });
 });
 
+describe('searchNodes with onlyTriggers', () => {
+  it('filters to only trigger nodes', () => {
+    const results = searchNodes('', true);
+    expect(results.every(r => r.isTrigger)).toBe(true);
+  });
+});
+
 describe('suggestNodesForTask', () => {
   it('suggests telegram nodes for telegram tasks', () => {
     const results = suggestNodesForTask('send a telegram message');
