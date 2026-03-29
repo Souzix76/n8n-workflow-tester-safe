@@ -39,6 +39,10 @@ Most n8n MCP integrations give you **full admin access** — credentials, destru
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/souzix76-n8n-workflow-tester-safe).
+
 ## Quick Start
 
 ### 1. Install
