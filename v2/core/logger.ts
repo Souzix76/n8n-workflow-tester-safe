@@ -1,19 +1,21 @@
 export interface LogContext {
   requestId?: string;
-  workflowId?: string;
   environment?: string;
+  workflowId?: string;
   operation?: string;
   [key: string]: unknown;
 }
 
-export interface Logger {
-  debug(message: string, context?: LogContext): void;
-  info(message: string, context?: LogContext): void;
-  warn(message: string, context?: LogContext): void;
-  error(message: string, context?: LogContext): void;
+export interface LogEntry {
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  timestamp: string;
+  context: LogContext;
 }
 
-export class StructuredLogger implements Logger {
+export class StructuredLogger {
+  private entries: LogEntry[] = [];
+
   debug(message: string, context: LogContext = {}): void {
     this.write('debug', message, context);
   }
@@ -30,15 +32,25 @@ export class StructuredLogger implements Logger {
     this.write('error', message, context);
   }
 
-  private write(level: string, message: string, context: LogContext): void {
-    const payload = {
+  private write(level: LogEntry['level'], message: string, context: LogContext): void {
+    this.entries.push({
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      context,
+    });
+
+    console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
       level,
       message,
       ...context,
-    };
+    }));
+  }
 
-    // Placeholder for later integration with stdout, file, or telemetry.
-    console.log(JSON.stringify(payload));
+  getEntries(): LogEntry[] {
+    return [...this.entries];
   }
 }
+
+export const logger = new StructuredLogger();

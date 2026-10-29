@@ -7,3 +7,4 @@ export * from './policy.js';
 export * from './environment-policy.js';
 export * from './dry-run.js';
 export * from './health.js';
+export * from './audit.js';
