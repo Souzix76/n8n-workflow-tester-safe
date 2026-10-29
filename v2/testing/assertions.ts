@@ -1,48 +1,129 @@
+export interface AssertionResult {
+  path: string;
+  passed: boolean;
+  expected?: unknown;
+  actual?: unknown;
+  message: string;
+}
+
+export interface AssertionSuiteResult {
+  passed: boolean;
+  results: AssertionResult[];
+}
+
 export type AssertionOperator =
   | 'equals'
+  | 'notEquals'
   | 'exists'
   | 'notEmpty'
   | 'contains'
-  | 'regex'
-  | 'deepEqual'
   | 'minLength'
-  | 'path';
+  | 'regex'
+  | 'isObject';
 
 export interface AssertionRule {
-  field: string;
+  path: string;
   operator: AssertionOperator;
-  value?: unknown;
-  severity?: 'info' | 'warning' | 'error';
+  expected?: unknown;
   message?: string;
 }
 
-export interface AssertionResult {
-  field: string;
-  passed: boolean;
-  operator: AssertionOperator;
-  message: string;
-  severity: 'info' | 'warning' | 'error';
+export function evaluateAssertion(value: unknown, rule: AssertionRule): AssertionResult {
+  const path = rule.path;
+
+  switch (rule.operator) {
+    case 'exists':
+      return {
+        path,
+        passed: value !== undefined && value !== null,
+        message: value !== undefined && value !== null ? 'Value exists.' : 'Value is missing.',
+        actual: value,
+      };
+
+    case 'notEmpty':
+      return {
+        path,
+        passed: value !== undefined && value !== null && String(value).length > 0,
+        message: value !== undefined && value !== null && String(value).length > 0 ? 'Value is not empty.' : 'Value is empty.',
+        actual: value,
+      };
+
+    case 'equals':
+      return {
+        path,
+        passed: value === rule.expected,
+        message: value === rule.expected ? 'Value matches expected result.' : 'Value does not match expected result.',
+        actual: value,
+        expected: rule.expected,
+      };
+
+    case 'notEquals':
+      return {
+        path,
+        passed: value !== rule.expected,
+        message: value !== rule.expected ? 'Value differs from forbidden value.' : 'Value unexpectedly matches forbidden value.',
+        actual: value,
+        expected: rule.expected,
+      };
+
+    case 'contains':
+      return {
+        path,
+        passed: typeof value === 'string' && String(value).includes(String(rule.expected ?? '')),
+        message: typeof value === 'string' && String(value).includes(String(rule.expected ?? '')) ? 'Value contains expected substring.' : 'Value does not contain expected substring.',
+        actual: value,
+        expected: rule.expected,
+      };
+
+    case 'minLength': {
+      const length = typeof value === 'string' || Array.isArray(value) ? value.length : 0;
+      const expected = Number(rule.expected ?? 0);
+      return {
+        path,
+        passed: length >= expected,
+        message: length >= expected ? 'Length meets minimum expectation.' : 'Length is below minimum expectation.',
+        actual: value,
+        expected,
+      };
+    }
+
+    case 'regex': {
+      const pattern = rule.expected instanceof RegExp ? rule.expected : new RegExp(String(rule.expected ?? ''));
+      return {
+        path,
+        passed: typeof value === 'string' && pattern.test(value),
+        message: typeof value === 'string' && pattern.test(value) ? 'Regex matches value.' : 'Regex does not match value.',
+        actual: value,
+        expected: pattern,
+      };
+    }
+
+    case 'isObject':
+      return {
+        path,
+        passed: typeof value === 'object' && value !== null && !Array.isArray(value),
+        message: typeof value === 'object' && value !== null && !Array.isArray(value) ? 'Value is an object.' : 'Value is not an object.',
+        actual: value,
+      };
+
+    default:
+      return {
+        path,
+        passed: false,
+        message: 'Unsupported assertion operator.',
+        actual: value,
+      };
+  }
 }
 
-export function evaluateAssertion(data: unknown, rule: AssertionRule): AssertionResult {
-  const severity = rule.severity ?? 'error';
-
-  if (rule.operator === 'exists') {
-    const passed = data !== undefined && data !== null;
-    return {
-      field: rule.field,
-      passed,
-      operator: rule.operator,
-      message: passed ? 'Field exists.' : `Field '${rule.field}' does not exist.`,
-      severity,
-    };
-  }
+export function evaluateSuite<T>(input: T, rules: AssertionRule[]): AssertionSuiteResult {
+  const results = rules.map((rule) => {
+    const value = (input as Record<string, unknown>)[rule.path as keyof typeof input];
+    return evaluateAssertion(value, rule);
+  });
 
   return {
-    field: rule.field,
-    passed: true,
-    operator: rule.operator,
-    message: 'Assertion placeholder for v2 validation layer.',
-    severity,
+    passed: results.every((result) => result.passed),
+    results,
   };
 }
