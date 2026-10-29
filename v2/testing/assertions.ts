@@ -28,6 +28,28 @@ export interface AssertionRule {
   message?: string;
 }
 
+export function getValueAtPath(input: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce<unknown>((current, segment) => {
+    if (current === undefined || current === null) {
+      return undefined;
+    }
+
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      if (!Number.isNaN(index) && index >= 0 && index < current.length) {
+        return current[index];
+      }
+      return undefined;
+    }
+
+    if (typeof current === 'object') {
+      return (current as Record<string, unknown>)[segment];
+    }
+
+    return undefined;
+  }, input);
+}
+
 export function evaluateAssertion(value: unknown, rule: AssertionRule): AssertionResult {
   const path = rule.path;
 
@@ -118,7 +140,7 @@ export function evaluateAssertion(value: unknown, rule: AssertionRule): Assertio
 
 export function evaluateSuite<T>(input: T, rules: AssertionRule[]): AssertionSuiteResult {
   const results = rules.map((rule) => {
-    const value = (input as Record<string, unknown>)[rule.path as keyof typeof input];
+    const value = getValueAtPath(input as Record<string, unknown>, rule.path);
     return evaluateAssertion(value, rule);
   });
 

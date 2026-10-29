@@ -1,25 +1,28 @@
-import { evaluateSuite, type AssertionRule, type AssertionSuiteResult } from './assertions.js';
+import type { AssertionRule } from './assertions.js';
 
-export interface SuiteExecutionInput {
-  name: string;
-  environment: string;
-  input: Record<string, unknown>;
-  rules: AssertionRule[];
-}
+export const baseEnvironmentRules: AssertionRule[] = [
+  { path: 'N8N_ENVIRONMENT', operator: 'exists', message: 'Environment name must exist.' },
+  { path: 'N8N_BASE_URL', operator: 'regex', expected: '^https?://', message: 'Base URL must be valid HTTP or HTTPS' },
+  { path: 'N8N_API_KEY', operator: 'minLength', expected: 8, message: 'API key too short.' },
+];
 
-export interface SuiteExecutionResult extends AssertionSuiteResult {
-  name: string;
-  environment: string;
-  status: 'passed' | 'failed';
-}
+export function createEnvironmentRules(environment: string): AssertionRule[] {
+  const baseRules = [...baseEnvironmentRules];
+  const expectedEnvironment =
+    environment === 'production'
+      ? 'production'
+      : environment === 'prod-safe'
+        ? 'prod-safe'
+        : environment === 'staging'
+          ? 'staging'
+          : 'dev';
 
-export function runValidationSuite({ name, environment, input, rules }: SuiteExecutionInput): SuiteExecutionResult {
-  const result = evaluateSuite(input, rules);
+  baseRules.push({
+    path: 'N8N_ENVIRONMENT',
+    operator: 'equals',
+    expected: expectedEnvironment,
+    message: `Environment must be '${expectedEnvironment}'.`,
+  });
 
-  return {
-    ...result,
-    name,
-    environment,
-    status: result.passed ? 'passed' : 'failed',
-  };
+  return baseRules;
 }
